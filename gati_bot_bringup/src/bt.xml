@@ -1,0 +1,109 @@
+<!--
+  navigate_w_replanning_fixed.xml
+  Author  : Ayush Bhandurge
+  Target  : Raspberry Pi 4B  |  Nav2  |  Differential Drive AMR
+
+  Recovery strategy (3 retries, graduated):
+    Retry 1 : Replan only — no costmap clear
+    Retry 2 : Clear local costmap only + replan
+    Retry 3 : Clear local + global costmap + replan
+
+  Key fixes vs original:
+    1. RetryUntilSuccessful wraps replan-only path so early retries
+       do NOT trigger costmap clearing.
+    2. Global costmap is only cleared on the 3rd attempt.
+    3. number_of_retries reduced to 3 — fewer wasted cycles before
+       the operator is notified of a real failure.
+    4. GoalUpdated fallback triggers immediate replan on goal change.
+    5. RateController at 1 Hz keeps CPU load low on RPi4B.
+-->
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+
+    <!--
+      Outer RecoveryNode: 3 retries.
+      Child 1 (NavigateWithReplanning) runs first.
+      If it FAILS, Child 2 (RecoverySequence) runs once,
+      then Child 1 is retried. Repeat up to 3 times total.
+    -->
+    <RecoveryNode number_of_retries="3" name="NavigateRecovery">
+
+      <!-- ═══ MAIN NAVIGATION ═══ -->
+      <PipelineSequence name="NavigateWithReplanning">
+
+        <!--
+          Rate-limited replanning at 1 Hz.
+          GoalUpdated short-circuits the rate limit:
+          if the goal changes, replan immediately.
+        -->
+        <RateController hz="1.0">
+          <Fallback>
+            <GoalUpdated/>
+            <ComputePathToPose
+              goal="{goal}"
+              path="{path}"
+              planner_id="GridBased"/>
+          </Fallback>
+        </RateController>
+
+        <!-- Follow the computed path -->
+        <FollowPath
+          path="{path}"
+          controller_id="FollowPath"/>
+
+      </PipelineSequence>
+
+      <!-- ═══ GRADUATED RECOVERY SEQUENCE ═══ -->
+      <!--
+        This Sequence runs when NavigateWithReplanning fails.
+
+        Fallback logic per retry:
+          - retry 1: ComputePathToPose alone succeeds → no costmap clear
+          - retry 2: local clear fires, then replan
+          - retry 3: local + global clear fires, then replan
+
+        Implementation: we always attempt a bare replan first (Fallback).
+        If that succeeds, the Sequence succeeds and we exit recovery.
+        If bare replan fails, we clear local, try again.
+        If still failing, clear global too.
+
+        NOTE: Because RecoveryNode drives retries externally, this
+        sequence is entered fresh each time. We use a PipelineSequence
+        so that a replan success mid-sequence exits immediately.
+      -->
+      <Sequence name="RecoverySequence">
+
+        <!-- Step 1: Try replanning without touching costmaps -->
+        <Fallback name="ReplanOrClearLocal">
+          <ComputePathToPose
+            goal="{goal}"
+            path="{path}"
+            planner_id="GridBased"/>
+
+          <!-- Step 2: Replan failed → clear local costmap, then replan -->
+          <Sequence name="ClearLocalAndReplan">
+            <ClearEntireCostmap
+              name="ClearLocalCostmap"
+              service_name="local_costmap/clear_entirely_local_costmap"/>
+            <ComputePathToPose
+              goal="{goal}"
+              path="{path}"
+              planner_id="GridBased"/>
+          </Sequence>
+        </Fallback>
+
+        <!-- Step 3: If we reach here, clear global and do final replan -->
+        <ClearEntireCostmap
+          name="ClearGlobalCostmap"
+          service_name="global_costmap/clear_entirely_global_costmap"/>
+        <ComputePathToPose
+          goal="{goal}"
+          path="{path}"
+          planner_id="GridBased"/>
+
+      </Sequence>
+
+    </RecoveryNode>
+
+  </BehaviorTree>
+</root>

@@ -1,0 +1,258 @@
+# NAV2 PARAM FILE - OPTIMIZED FOR RASPBERRY PI 4B
+# Author: Ayush Bhandurge
+# Fixes:
+#   1. bt_loop_duration: 50ms (20Hz) — RPi4B cannot sustain 100Hz BT ticks
+#   2. progress_checker: relaxed radius + longer allowance
+#   3. DWB samples reduced for CPU headroom
+#   4. transform_tolerance increased throughout for RPi4B TF lag
+#   5. expected_planner_frequency lowered to match BT RateController
+
+amcl:
+  ros__parameters:
+    use_sim_time: false
+    base_frame_id: "base_footprint"
+    global_frame_id: "map"
+    odom_frame_id: "odom"
+    scan_topic: scan
+    robot_model_type: "nav2_amcl::DifferentialMotionModel"
+    min_particles: 300
+    max_particles: 1200
+    laser_model_type: "likelihood_field"
+    laser_likelihood_max_dist: 2.0
+    z_hit: 0.5
+    z_short: 0.05
+    z_max: 0.05
+    z_rand: 0.5
+    sigma_hit: 0.2
+    lambda_short: 0.1
+    alpha1: 0.2
+    alpha2: 0.2
+    alpha3: 0.2
+    alpha4: 0.2
+    alpha5: 0.2
+    tf_broadcast: true
+    transform_tolerance: 1.0          # increased from 0.5 — RPi4B TF publish lag
+    recovery_alpha_slow: 0.0
+    recovery_alpha_fast: 0.0
+    update_min_d: 0.08
+    update_min_a: 0.05
+    resample_interval: 2
+    save_pose_rate: 0.5
+
+
+controller_server:
+  ros__parameters:
+    use_sim_time: false
+    controller_frequency: 5.0         # reduced from 8.0 — CPU headroom on RPi4B
+    min_x_velocity_threshold: 0.001
+    min_theta_velocity_threshold: 0.001
+    progress_checker_plugin: "progress_checker"
+    goal_checker_plugins: ["goal_checker"]
+    current_goal_checker: "goal_checker"
+    controller_plugins: ["FollowPath"]
+
+    progress_checker:
+      plugin: "nav2_controller::SimpleProgressChecker"
+      required_movement_radius: 0.15   # reduced from 0.4 — more forgiving on slow robot
+      movement_time_allowance: 60.0    # increased from 30.0 — enough time to replan/avoid
+
+    goal_checker:
+      plugin: "nav2_controller::SimpleGoalChecker"
+      xy_goal_tolerance: 0.3
+      yaw_goal_tolerance: 0.3
+      stateful: True
+
+    FollowPath:
+      plugin: "dwb_core::DWBLocalPlanner"
+
+      # --- Velocity limits ---
+      min_vel_x: 0.0
+      max_vel_x: 0.22
+      max_vel_theta: 0.8
+      min_speed_xy: 0.0
+      max_speed_xy: 0.22
+      min_speed_theta: 0.0
+
+      # --- Acceleration limits ---
+      acc_lim_x: 1.0
+      acc_lim_theta: 1.5
+      decel_lim_x: -2.0
+      decel_lim_theta: -2.5
+
+      # --- Trajectory sampling ---
+      # Reduced from original — keeps DWB scoring fast on RPi4B
+      vx_samples: 10                   # reduced from 15
+      vtheta_samples: 15               # reduced from 20
+      sim_time: 1.4                    # reduced from 1.7 — fewer poses to score
+      linear_granularity: 0.05
+      angular_granularity: 0.025
+      transform_tolerance: 0.5         # increased from 0.2 — RPi4B TF lag tolerance
+      trans_stopped_velocity: 0.25
+      short_circuit_trajectory_evaluation: True
+      stateful: True
+
+      # --- Critics ---
+      # BaseObstacle scores full costmap under footprint — prevents entering lethal zones
+      # Oscillation prevents back-and-forth near dynamic obstacles
+      critics: ["Oscillation", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist", "RotateToGoal"]
+
+      BaseObstacle.scale: 0.01
+      BaseObstacle.sum_scores: true
+
+      GoalAlign.scale: 10.0
+      GoalAlign.forward_point_distance: 0.2
+
+      PathAlign.scale: 20.0            # reduced from 40.0 — less rejection of valid trajectories
+      PathAlign.forward_point_distance: 0.2
+
+      PathDist.scale: 25.0             # reduced from 40.0 — same reason
+      GoalDist.scale: 15.0             # reduced from 20.0
+
+      RotateToGoal.scale: 10.0
+      RotateToGoal.slowing_factor: 5.0
+      RotateToGoal.lookahead_time: -1.0
+
+      Oscillation.scale: 1.0
+
+
+planner_server:
+  ros__parameters:
+    use_sim_time: false
+    expected_planner_frequency: 0.5   # reduced from 1.0 — matches BT RateController at 1Hz
+    planner_plugins: ["GridBased"]
+    GridBased:
+      plugin: "nav2_navfn_planner/NavfnPlanner"
+      tolerance: 0.5
+      use_astar: true
+      allow_unknown: true
+
+
+bt_navigator:
+  ros__parameters:
+    use_sim_time: false
+    global_frame: map
+    robot_base_frame: base_footprint
+    odom_topic: /odom
+    bt_loop_duration: !!int 50        # CRITICAL FIX: was 10 (100Hz) → 50 (20Hz)
+                                      # RPi4B cannot complete a planner RPC in 10ms
+                                      # 50ms gives all action servers time to acknowledge
+    default_server_timeout: !!int 20
+    default_nav_through_poses_bt_xml: ""
+    default_nav_to_pose_bt_xml: "/home/svr/gati_bot_ws/src/gati_bot_bringup/src/bt.xml"
+    plugin_lib_names:
+      - nav2_compute_path_to_pose_action_bt_node
+      - nav2_follow_path_action_bt_node
+      - nav2_goal_reached_condition_bt_node
+      - nav2_rate_controller_bt_node
+      - nav2_goal_updated_condition_bt_node
+      - nav2_initial_pose_received_condition_bt_node
+      - nav2_recovery_node_bt_node
+      - nav2_pipeline_sequence_bt_node
+      - nav2_transform_available_condition_bt_node
+      - nav2_clear_costmap_service_bt_node
+      - nav2_navigate_to_pose_action_bt_node
+      - nav2_is_stuck_condition_bt_node
+      - nav2_goal_checker_selector_bt_node
+      - nav2_controller_selector_bt_node
+
+
+bt_navigator_navigate_to_pose_rclcpp_node:
+  ros__parameters:
+    use_sim_time: false
+
+
+waypoint_follower:
+  ros__parameters:
+    use_sim_time: false
+    loop_rate: 10
+    stop_on_failure: false
+
+
+local_costmap:
+  local_costmap:
+    ros__parameters:
+      use_sim_time: false
+      global_frame: odom
+      robot_base_frame: base_footprint
+      update_frequency: 4.0
+      publish_frequency: 2.0
+      resolution: 0.05
+      robot_radius: 0.20
+      rolling_window: true
+      width: 3
+      height: 3
+      transform_tolerance: 1.0        # increased — RPi4B TF timing tolerance
+      plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
+
+      static_layer:
+        plugin: "nav2_costmap_2d::StaticLayer"
+        map_subscribe_transient_local: True
+
+      obstacle_layer:
+        plugin: "nav2_costmap_2d::ObstacleLayer"
+        observation_sources: scan
+        scan:
+          topic: /scan
+          data_type: "LaserScan"
+          marking: True
+          clearing: True
+          max_obstacle_height: 2.6
+          raytrace_max_range: 4.0
+          raytrace_min_range: 0.0
+          obstacle_max_range: 2.5
+          obstacle_min_range: 0.0
+
+      inflation_layer:
+        plugin: "nav2_costmap_2d::InflationLayer"
+        cost_scaling_factor: 2.5
+        inflation_radius: 0.2
+
+
+global_costmap:
+  global_costmap:
+    ros__parameters:
+      use_sim_time: false
+      global_frame: map
+      robot_base_frame: base_footprint
+      update_frequency: 0.5
+      publish_frequency: 0.5
+      resolution: 0.05
+      robot_radius: 0.20
+      transform_tolerance: 1.0        # increased — RPi4B TF timing tolerance
+      plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
+
+      static_layer:
+        plugin: "nav2_costmap_2d::StaticLayer"
+        map_subscribe_transient_local: True
+
+      obstacle_layer:
+        plugin: "nav2_costmap_2d::ObstacleLayer"
+        observation_sources: scan
+        scan:
+          topic: /scan
+          data_type: "LaserScan"
+          marking: True
+          clearing: True
+          max_obstacle_height: 2.6
+          raytrace_max_range: 3.0
+          raytrace_min_range: 0.0
+          obstacle_max_range: 2.5
+          obstacle_min_range: 0.0
+
+      inflation_layer:
+        plugin: "nav2_costmap_2d::InflationLayer"
+        cost_scaling_factor: 2.5
+        inflation_radius: 0.2
+
+
+lifecycle_manager:
+  ros__parameters:
+    use_sim_time: false
+    autostart: true
+    node_names:
+      - controller_server
+      - planner_server
+      - bt_navigator
+      - waypoint_follower
+      - amcl
+      - map_server

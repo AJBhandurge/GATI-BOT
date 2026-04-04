@@ -1,0 +1,114 @@
+import sys
+import select
+import termios
+import tty
+
+import rclpy
+from rclpy.node import Node
+from geometry_msgs.msg import Twist
+
+msg = """
+
+----------------RUN YOUR GATIBOT------------------
+Moving around:
+   u    i    o
+   j    k    l
+   m    ,    .
+
+t : up (+z) | b : down (-z)
+
+anything else : stop
+
+q/z : increase/decrease max speeds by 10%
+w/x : increase/decrease only linear speed by 10%
+e/c : increase/decrease only angular speed by 10%
+
+CTRL-C to quit
+
+currently:	speed 0.5	turn 1.0 
+"""
+
+moveBindings = {
+    'i': (1, 0, 0, 0),   'o': (1, 0, 0, -1),  'j': (0, 0, 0, 1),
+    'l': (0, 0, 0, -1),  'u': (1, 0, 0, 1),   ',': (-1, 0, 0, 0),
+    '.': (-1, 0, 0, 1),  'm': (-1, 0, 0, -1), 't': (0, 0, 1, 0),
+    'b': (0, 0, -1, 0),
+}
+
+
+def vels(speed, turn):
+    return "currently:\tspeed %s\tturn %s " % (speed, turn)
+
+def get_key(settings):
+    tty.setraw(sys.stdin.fileno())
+    select.select([sys.stdin], [], [], 0)
+    key = sys.stdin.read(1)
+    termios.tcsetattr(sys.stdin, termios.TCSADRAIN, settings)
+    return key
+
+def main():
+    settings = termios.tcgetattr(sys.stdin)
+    rclpy.init()
+    node = rclpy.create_node('teleop_twist_keyboard')
+    pub = node.create_publisher(Twist, 'cmd_vel', 10)
+
+    speed = 0.5
+    turn = 1.0
+    MAX_SPEED = 2.0  # <--- YOUR LIMIT
+
+    x, y, z, th = 0.0, 0.0, 0.0, 0.0
+    status = 0
+
+    try:
+        print(msg)
+        while True:
+            key = get_key(settings)
+            
+            # Movement selection
+            if key in moveBindings.keys():
+                x, y, z, th = moveBindings[key]
+            
+            # Speed control with clamping
+            elif key == 'q':
+                speed = min(MAX_SPEED, speed * 1.1)
+                turn = turn * 1.1
+            elif key == 'z':
+                speed = speed * 0.9
+                turn = turn * 0.9
+            elif key == 'w':
+                speed = min(MAX_SPEED, speed * 1.1)
+            elif key == 'x':
+                speed = speed * 0.9
+            elif key == 'e':
+                turn = turn * 1.1
+            elif key == 'c':
+                turn = turn * 0.9
+            
+            elif key == '\x03':  # CTRL-C
+                break
+            else:
+                x, y, z, th = 0.0, 0.0, 0.0, 0.0
+            
+            # Print status update
+            if (key == 'q' or key == 'z' or key == 'w' or key == 'x' or key == 'e' or key == 'c'):
+                print(vels(round(speed, 2), round(turn, 2)))
+
+            # Publish the message
+            twist = Twist()
+            twist.linear.x = x * speed
+            twist.linear.y = y * speed
+            twist.linear.z = z * speed
+            twist.angular.z = th * turn
+            pub.publish(twist)
+
+    except Exception as e:
+        print(e)
+    finally:
+        # Emergency stop on exit
+        pub.publish(Twist())
+        termios.tcsetattr(sys.stdin, termios.TCSADRAIN, settings)
+        node.destroy_node()
+        rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
