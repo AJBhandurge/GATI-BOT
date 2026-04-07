@@ -123,7 +123,7 @@ sudo apt update && sudo apt install -y \
 ```bash
 # Clone the repository
 cd gati_bot_ws/src/
-git clone <repo-url>
+git clone https://github.com/AJBhandurge/Gatibot-Differential-Drive-Robot-for-SLAM-and-Navigation.git
 
 # Source ROS 2
 source /opt/ros/humble/setup.bash
@@ -194,7 +194,7 @@ Use the keyboard to drive the robot. The node publishes `geometry_msgs/Twist` on
 First start the bringup, then in a new terminal:
 
 ```bash
-ros2 launch gati_bot_bringup online_async_launch.py
+ros2 launch slam_toolbox online_async_launch.py
 ```
 
 Drive the robot around to build the map. When satisfied, save the map:
@@ -203,20 +203,13 @@ Drive the robot around to build the map. When satisfied, save the map:
 ros2 run nav2_map_server map_saver_cli -f src/gati_bot_bringup/maps/<map_name>
 ```
 
-### 4. Localization
+### 4. Localization and Navigation
 
-Use this to localize on a previously saved map (without SLAM):
+Use this to localize and naviagtaion autonomously on a previously saved map :
 
-```bash
-ros2 launch gati_bot_bringup localization_launch.py map:=<path_to_map.yaml>
-```
-
-### 5. Autonomous Navigation
-
-After localization is running, launch Nav2:
 
 ```bash
-ros2 launch gati_bot_bringup navigation_launch.py
+ros2 launch gati_bot_bringup navigation_launch.py  map:=<path_to_map.yaml>
 ```
 
 Set a **2D Goal Pose** in RViz2 to send the robot to a target location autonomously.
