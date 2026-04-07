@@ -4,7 +4,7 @@
   <name>gati_bot_node</name>
   <version>0.0.0</version>
   <description>TODO: Package description</description>
-  <maintainer email="ayush@todo.todo">ayush</maintainer>
+  <maintainer email="ayushjbhandurge@gmail.com">ayush</maintainer>
   <license>TODO: License declaration</license>
 
   <depend>rclpy</depend>
