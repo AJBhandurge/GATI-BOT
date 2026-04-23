@@ -34,14 +34,14 @@ class AMRNode(Node):
         #   Real measured distance between the two wheel contact points.
         #   Used in cmd_vel_callback to split linear+angular velocity into
         #   individual left/right wheel speeds sent to ESP32.
-        self.wheel_base_physical  = 0.134   # meters — DO NOT change this
+        self.wheel_base_physical  = 0.195   # meters — DO NOT change this
 
         # EFFECTIVE wheel_base (odometry):
         #   Calibrated value that makes a real 360° spin = 360° in RViz.
         #   Always less than physical due to wheel slip/contact patch.
         #   Tune this: if RViz spin < real, decrease; if RViz > real, increase.
         #   Formula: new = current × (rviz_degrees / 360)
-        self.wheel_base_odom = 0.134    # meters — tune this for accurate rotation
+        self.wheel_base_odom = 0.195    # meters — tune this for accurate rotation
 
         # --- ODOMETRY STATE ---
         self.x     = 0.0
