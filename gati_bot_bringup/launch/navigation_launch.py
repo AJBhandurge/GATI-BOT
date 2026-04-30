@@ -24,7 +24,7 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'map',
             # This remains the default if you don't provide one in the terminal
-            default_value=os.path.join(pkg_path, 'maps', 'svr2.yaml'),
+            default_value=os.path.join(pkg_path, 'maps', 'svr100.yaml'),
             description='Full path to the map YAML file'
         ),
 

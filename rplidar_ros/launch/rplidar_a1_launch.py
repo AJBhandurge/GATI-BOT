@@ -12,7 +12,7 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     channel_type =  LaunchConfiguration('channel_type', default='serial')
-    serial_port = LaunchConfiguration('serial_port', default='/dev/gati_bot_lidar')
+    serial_port = LaunchConfiguration('serial_port', default='/dev/ttyUSB0') #/dev/gati_bot_lidar
     serial_baudrate = LaunchConfiguration('serial_baudrate', default='115200')
     frame_id = LaunchConfiguration('frame_id', default='laser_frame')
     inverted = LaunchConfiguration('inverted', default='false')
