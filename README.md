@@ -125,6 +125,9 @@ sudo apt update && sudo apt install -y \
 cd gati_bot_ws/src/
 git clone https://github.com/AJBhandurge/Gatibot-Differential-Drive-Robot-for-SLAM-and-Navigation.git
 
+# Flatten repo contents into src/
+cp -r Gatibot-Differential-Drive-Robot-for-SLAM-and-Navigation/* ~/gati_bot_ws/src/
+rm -rf Gatibot-Differential-Drive-Robot-for-SLAM-and-Navigation/
 # Source ROS 2
 source /opt/ros/humble/setup.bash
 ```
@@ -137,7 +140,7 @@ Add the following line :
 # LIDAR — USB hub port 1-1.1
 SUBSYSTEM=="tty", KERNELS=="1-1.1", SYMLINK+="dev/gati_bot_lidar", MODE="0666"
 
-# ESP32 (Mainboard) — USB hub port 1-1.2
+# ESP32 (Controller) — USB hub port 1-1.2
 SUBSYSTEM=="tty", KERNELS=="1-1.2", SYMLINK+="gati_bot_mb", MODE="0666"
 ```
 
