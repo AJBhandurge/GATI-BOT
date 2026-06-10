@@ -129,22 +129,16 @@ git clone https://github.com/AJBhandurge/Gatibot-Differential-Drive-Robot-for-SL
 source /opt/ros/humble/setup.bash
 ```
 
-### udev Rule for ESP32 Serial Port
 
-The robot node expects the ESP32 at `/dev/gati_bot_mb`. Create a persistent udev rule so the device always gets this name:
 
-```bash
-# Find your ESP32 vendor/product IDs
-udevadm info -a -n /dev/ttyUSB0 | grep -E 'idVendor|idProduct'
-
-# Create the rule
-sudo nano /etc/udev/rules.d/99-gatibot.rules
-```
-
-Add the following line (replace `xxxx` with your actual IDs):
+Add the following line :
 
 ```
-SUBSYSTEM=="tty", ATTRS{idVendor}=="xxxx", ATTRS{idProduct}=="xxxx", SYMLINK+="gati_bot_mb"
+# LIDAR — USB hub port 1-1.1
+SUBSYSTEM=="tty", KERNELS=="1-1.1", SYMLINK+="dev/gati_bot_lidar", MODE="0666"
+
+# ESP32 (Mainboard) — USB hub port 1-1.2
+SUBSYSTEM=="tty", KERNELS=="1-1.2", SYMLINK+="gati_bot_mb", MODE="0666"
 ```
 
 ```bash
