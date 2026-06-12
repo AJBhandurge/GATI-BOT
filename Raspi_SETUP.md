@@ -19,16 +19,19 @@ A step-by-step guide to installing and configuring Ubuntu Desktop 22.04 LTS on a
 1. Open **Raspberry Pi Imager**.
 2. Click **CHOOSE DEVICE** and select **Raspberry Pi 4**.
 
-   ![Select Device](step1_select_device.png)
+   <img width="850" height="590" alt="Screenshot 2026-06-12 111200" src="https://github.com/user-attachments/assets/a3cfa338-eb52-43fb-8d1f-88cdfd3aacbd" />
+
 
 3. Click **CHOOSE OS** → **Other general-purpose OS** → **Ubuntu**.
 4. Select **Ubuntu Desktop 22.04.5 LTS (64-bit)** — make sure to pick **Desktop**, not Server.
 
-   ![Choose OS](step2_choose_os.png)
+   <img width="847" height="591" alt="Screenshot 2026-06-12 111257" src="https://github.com/user-attachments/assets/456d0e13-d5f2-4946-9597-f0ff588bc34a" />
+
 
 5. Click **CHOOSE STORAGE** and select your microSD card.
 
-   ![Select Storage](step3_select_storage.png)
+  <img width="849" height="591" alt="Screenshot 2026-06-12 111518" src="https://github.com/user-attachments/assets/9526f200-7fb9-4ea1-b8ac-c3df746f9efa" />
+
 
 6. Click **Next**.
 7. When prompted, click **Edit Settings** to pre-configure Wi-Fi and SSH:
@@ -38,7 +41,8 @@ A step-by-step guide to installing and configuring Ubuntu Desktop 22.04 LTS on a
    - Under the **Services** tab, enable **SSH** with **Use password authentication**.
 8. Save settings, click **Yes** to apply, then click **WRITE** to flash the image.
 
-   ![Write Image](step4_write_image.png)
+  <img width="848" height="586" alt="Screenshot 2026-06-12 111534" src="https://github.com/user-attachments/assets/1bcdbfb9-3ce9-491b-885f-a16c20a63ff8" />
+
 
 > **Note:** Completing step 7 means you can skip manual Wi-Fi configuration after first boot.
 
